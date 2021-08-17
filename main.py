@@ -7,7 +7,9 @@ import os
 import asyncio
 import json
 import time
+import logging
 
+logging.basicConfig(filename="lanews.log", level=logging.DEBUG)
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
@@ -16,7 +18,7 @@ loop = asyncio.get_event_loop()
 
 
 async def publish_news():
-    print('Running web scrape...')
+    logging.debug('Running web scrape...')
     la_news = NewsScraper(loop=loop)
     articles = await la_news.news_articles()
 
@@ -57,6 +59,6 @@ def run_async(coroutine):
 schedule.every().hour.do(run_async, publish_news)
 
 while True:
-    print('Checking schedule...')
+    logging.debug('Checking schedule...')
     schedule.run_pending()
     time.sleep(300)

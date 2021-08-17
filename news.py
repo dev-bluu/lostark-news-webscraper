@@ -24,7 +24,7 @@ class NewsScraper:
             raise Exception()
 
         self.client = client if None else ClientSession(loop=loop)
-        self.database = _create_connection('news.db') if database is None else database
+        self.database = _create_connection('database/news.db') if database is None else database
         self._md5 = hashlib.new('md5', usedforsecurity=False)
 
     async def _fetch_url(self, url):
