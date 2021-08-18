@@ -10,4 +10,5 @@ RUN python3 -m venv venv && \
 RUN mkdir database && \
     touch database/news.db
 
+
 CMD ["venv/bin/python", "main.py"]

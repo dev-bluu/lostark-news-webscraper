@@ -72,12 +72,14 @@ class NewsScraper:
 
             _hash = hashlib.md5(article_meta.__str__().encode('UTF-8'), usedforsecurity=False).hexdigest()
             if self._check_hash(_hash, 'news_hashes'):
-                return
+                articles.reverse()
+                return articles
             else:
                 self._store_hash(_hash, 'news_hashes')
 
             articles.append(article_meta)
-        return articles.reverse()
+        articles.reverse()
+        return articles
 
     async def close(self):
         await self.client.close()
