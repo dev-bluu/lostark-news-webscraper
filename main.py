@@ -56,9 +56,9 @@ def run_async(coroutine):
     loop.run_until_complete(task)
 
 
-schedule.every().hour.do(run_async, publish_news)
+schedule.every(5).minutes.do(run_async, publish_news)
 
 while True:
     logging.debug('Checking schedule...')
     schedule.run_pending()
-    time.sleep(300)
+    time.sleep(1)
