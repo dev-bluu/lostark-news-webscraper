@@ -8,24 +8,41 @@ import asyncio
 import json
 import time
 import logging
+import ast
 
 logging.basicConfig(filename="lanews.log", level=logging.DEBUG)
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
 WEBHOOK_URL = os.environ.get('WEBHOOK_URL')
+PRELOAD = ast.literal_eval(os.environ.get('PRELOAD'))
+if WEBHOOK_URL is None:
+    raise Exception()
+if PRELOAD is None:
+    PRELOAD = True
+
 loop = asyncio.get_event_loop()
 
 
-async def publish_news():
+async def preload_news():
+    scraper = NewsScraper(loop=loop)
+    await fetch_news(scraper)
+    await scraper.close()
+
+
+async def fetch_news(scraper):
     logging.debug('Running web scrape...')
+    return await scraper.news_articles()
+
+
+async def publish_news():
     la_news = NewsScraper(loop=loop)
-    articles = await la_news.news_articles()
+    articles = await fetch_news(la_news)
 
     if bool(articles):
         for article in articles:
             payload = {
-                "content": None,
+                "content": '<@&922576289188151307>',
                 "embeds": [
                     {
                         "title": article['title'].replace("'", "\\'"),
@@ -39,15 +56,19 @@ async def publish_news():
                         "image": {
                             "url": article['image_preview']
                         },
-                        #"thumbnail": {
-                        #    "url": "https://images.ctfassets.net/umhrp0op95v1/S3yKwaVAOi8Bgqg4n4scf"
-                        #           "/adae769671b271b88f97d31721432986/LA_LOGO.png "
-                        #}
+                        "thumbnail": {
+                            "url": "https://images.ctfassets.net/umhrp0op95v1/S3yKwaVAOi8Bgqg4n4scf"
+                                   "/adae769671b271b88f97d31721432986/LA_LOGO.png "
+                        }
                     }
                 ]
             }
-            resp = await la_news.client.post(url=WEBHOOK_URL, data=json.dumps(payload).encode('UTF-8'), headers={'Content-Type': 'application/json'})
-            print(resp.status)
+            while True:
+                resp = await la_news.client.post(url=WEBHOOK_URL, data=json.dumps(payload).encode('UTF-8'), headers={'Content-Type': 'application/json'})
+                if resp.status == 204:
+                    break
+                time.sleep(15)
+        time.sleep(5)
     await la_news.close()
 
 
@@ -56,7 +77,10 @@ def run_async(coroutine):
     loop.run_until_complete(task)
 
 
-schedule.every(5).minutes.do(run_async, publish_news)
+if PRELOAD:
+    asyncio.get_event_loop().run_until_complete(preload_news())
+
+schedule.every(1).seconds.do(run_async, publish_news)
 
 while True:
     logging.debug('Checking schedule...')

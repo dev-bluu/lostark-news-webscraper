@@ -3,6 +3,7 @@ from aiohttp import ClientSession
 from sqlite3 import Error
 import hashlib
 import sqlite3
+import time
 
 BASE_URL = 'https://www.playlostark.com'
 
@@ -28,8 +29,11 @@ class NewsScraper:
         self._md5 = hashlib.new('md5', usedforsecurity=False)
 
     async def _fetch_url(self, url):
-        async with self.client.get(url=url) as resp:
-            return await resp.text()
+        while True:
+            async with self.client.get(url=url) as resp:
+                if resp.status == 200:
+                    return await resp.text()
+            time.sleep(15)
 
     def _store_hash(self, _hash, table):
         with self.database as db:
@@ -72,12 +76,14 @@ class NewsScraper:
 
             _hash = hashlib.md5(article_meta.__str__().encode('UTF-8'), usedforsecurity=False).hexdigest()
             if self._check_hash(_hash, 'news_hashes'):
-                return
+                articles.reverse()
+                return articles
             else:
                 self._store_hash(_hash, 'news_hashes')
 
             articles.append(article_meta)
-        return articles.reverse()
+        articles.reverse()
+        return articles
 
     async def close(self):
         await self.client.close()
